@@ -88,19 +88,19 @@ public class TreeRepositoryTest {
      * <img src="doc-files/savingTwoRootsWithChild.png">
      */
     @Test
-    public void savingTwoRootsWithChild() {
+    public void savingTwoRootsWithChildOnRight() {
         TreeItem ti1 = TreeItem.builder().name("1.1").build();
-        directoryTreeRepository.save(ti1);
+        ti1 = directoryTreeRepository.save(ti1);
 
         TreeItem ti2 = TreeItem.builder().name("1.2").build();
-        directoryTreeRepository.save(ti2);
+        ti2 = directoryTreeRepository.save(ti2);
 
         TreeItem ti3 = TreeItem.builder().parentId(ti2.getId()).name("1.2.1").build();
-        directoryTreeRepository.save(ti3);
+        ti3 = directoryTreeRepository.save(ti3);
 
-        ti1 = directoryTreeRepository.findOne(ti1.getId());
-        ti2 = directoryTreeRepository.findOne(ti2.getId());
-        ti3 = directoryTreeRepository.findOne(ti3.getId());
+//        ti1 = directoryTreeRepository.findOne(ti1.getId());
+//        ti2 = directoryTreeRepository.findOne(ti2.getId());
+//        ti3 = directoryTreeRepository.findOne(ti3.getId());
 
         assertThat(ti1.getParentId(), nullValue());
         assertThat(ti1.getLeft(), is(1));
@@ -114,7 +114,7 @@ public class TreeRepositoryTest {
     }
 
     @Test
-    public void asd() {
+    public void savingTwoRootsWithChildOnLeft() {
         TreeItem ti1 = TreeItem.builder().name("1").build();
         directoryTreeRepository.save(ti1);
 
@@ -123,6 +123,10 @@ public class TreeRepositoryTest {
 
         TreeItem ti3 = TreeItem.builder().parentId(ti1.getId()).name("1.1").build();
         directoryTreeRepository.save(ti3);
+
+        ti1 = directoryTreeRepository.findOne(ti1.getId());
+        ti2 = directoryTreeRepository.findOne(ti2.getId());
+        ti3 = directoryTreeRepository.findOne(ti3.getId());
 
         assertThat(ti1.getParentId(), nullValue());
         assertThat(ti1.getLeft(), is(1));
@@ -133,5 +137,31 @@ public class TreeRepositoryTest {
         assertThat(ti3.getParentId(), is(ti1.getId()));
         assertThat(ti3.getLeft(), is(2));
         assertThat(ti3.getRight(), is(3));
+    }
+
+    @Test
+    public void removeAChild() {
+        TreeItem ti1 = TreeItem.builder().name("1").build();
+        directoryTreeRepository.save(ti1);
+
+        TreeItem ti2 = TreeItem.builder().name("2").build();
+        directoryTreeRepository.save(ti2);
+
+        TreeItem ti3 = TreeItem.builder().parentId(ti2.getId()).name("2.1").build();
+        directoryTreeRepository.save(ti3);
+
+        directoryTreeRepository.delete(ti3.getId());
+
+        ti1 = directoryTreeRepository.findOne(ti1.getId());
+        ti2 = directoryTreeRepository.findOne(ti2.getId());
+        ti3 = directoryTreeRepository.findOne(ti3.getId());
+
+        assertThat(ti1.getParentId(), nullValue());
+        assertThat(ti1.getLeft(), is(1));
+        assertThat(ti1.getRight(), is(2));
+        assertThat(ti2.getParentId(), nullValue());
+        assertThat(ti2.getLeft(), is(3));
+        assertThat(ti2.getRight(), is(4));
+        assertThat(ti3, nullValue());
     }
 }

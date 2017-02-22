@@ -1,7 +1,8 @@
-package de.codearcs.spring.data.jpa.repository.support;
+package de.codearcs.spring.data.jpa.repository;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.function.Function;
 
 import javax.persistence.EntityManager;
 import javax.persistence.criteria.CriteriaBuilder;
@@ -12,9 +13,6 @@ import javax.transaction.Transactional;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.data.repository.NoRepositoryBean;
-
-import de.codearcs.spring.data.jpa.repository.ITreeItem;
-import de.codearcs.spring.data.jpa.repository.TreeRepository;
 
 @NoRepositoryBean
 public class TreeRepositoryImpl<T extends ITreeItem<ID>, ID extends Serializable> extends SimpleJpaRepository<T, ID>
@@ -59,20 +57,43 @@ public class TreeRepositoryImpl<T extends ITreeItem<ID>, ID extends Serializable
         }
     }
 
+    @Override public void delete(ID id) {
+        T entity = findOne(id);
+        int parentLeft = entity.getRight();
+
+        List<T> items = this.findByLeftGreaterThanEqualOrRightGreaterThanEqual(parentLeft);
+        items.forEach(item -> {
+            int left = item.getLeft();
+            if (left >= parentLeft) {
+                item.setLeft(left - 2);
+            }
+            int right = item.getRight();
+            if (right >= parentLeft) {
+                item.setRight(right - 2);
+            }
+
+            if(!item.equals(entity)) {
+                super.save(item);
+            }
+        });
+
+        super.delete(entity);
+    }
+
     private void moveOtherItems(int parentRight) {
         List<T> items = this.findByLeftGreaterThanEqualOrRightGreaterThanEqual(parentRight);
 
-        items.forEach(item -> {
+        items.stream().map(item -> {
             int left = item.getLeft();
-            if(left >= parentRight) {
+            if (left >= parentRight) {
                 item.setLeft(left + 2);
             }
             int right = item.getRight();
-            if(right >= parentRight) {
+            if (right >= parentRight) {
                 item.setRight(right + 2);
             }
 
-            super.save(item);
+            return super.save(item);
         });
     }
 
