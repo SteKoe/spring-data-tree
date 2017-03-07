@@ -45,19 +45,19 @@ public class TreeRepositoryImpl<T extends ITreeItem<ID>, ID extends Serializable
             entity.setRight(maxRight + 2);
         } else if (isNew) {
             T parent = (T) super.findOne(parentId);
-            int edge = parent.getRight();
-            entity.setLeft(edge);
-            entity.setRight(edge + 1);
+            int right = parent.getRight();
+            entity.setLeft(right);
+            entity.setRight(right + 1);
 
-            List<T> nodes = this.findByLeftGreaterThanEqualOrRightGreaterThanEqual(edge);
+            List<T> nodes = this.findByLeftGreaterThanEqualOrRightGreaterThanEqual(right);
             nodes.forEach(node -> {
-                int left = node.getLeft();
-                if (left >= edge) {
-                    node.setLeft(left + 2);
+                int lft = node.getLeft();
+                if (lft >= right) {
+                    node.setLeft(lft + 2);
                 }
-                int right = node.getRight();
-                if (right >= edge) {
-                    node.setRight(right + 2);
+                int rght = node.getRight();
+                if (rght >= right) {
+                    node.setRight(rght + 2);
                 }
 
                 super.save(node);
@@ -93,25 +93,33 @@ public class TreeRepositoryImpl<T extends ITreeItem<ID>, ID extends Serializable
     }
 
     @Override
+    @Transactional
     public void delete(ID id) {
         T entity = findOne(id);
-        int parentLeft = entity.getRight();
+        int left = entity.getLeft();
+        int right = entity.getRight();
+        int delta = right - left + 1;
 
-        List<T> items = this.findByLeftGreaterThanEqualOrRightGreaterThanEqual(parentLeft);
-        items.forEach(item -> {
-            int left = item.getLeft();
-            if (left >= parentLeft) {
-                item.setLeft(left - 2);
-            }
-            int right = item.getRight();
-            if (right >= parentLeft) {
-                item.setRight(right - 2);
+        if (delta > 2) {
+            List<T> nodes = this.findByLeftGreaterEqualThanAndRightLowerEqualThan(left, right);
+            nodes.forEach(super::delete);
+        }
+
+        List<T> nodes = this.findByRightGreaterThan(right);
+        nodes.forEach(node -> {
+            int lft = node.getLeft();
+            if(lft > right) {
+                node.setLeft(lft - delta);
             }
 
-            super.save(item);
+            int rght = node.getRight();
+            if(rght > right) {
+                node.setRight(rght - delta);
+            }
+            super.save(node);
         });
 
-        super.delete(entity);
+        super.delete(id);
     }
 
     @Override
@@ -128,12 +136,39 @@ public class TreeRepositoryImpl<T extends ITreeItem<ID>, ID extends Serializable
         return resultList;
     }
 
-    public List<T> findByLeftGreaterThanEqualOrRightGreaterThanEqual(int i) {
+    private List<T> findByLeftGreaterThanEqualOrRightGreaterThanEqual(int i) {
         CriteriaBuilder builder = entityManager.getCriteriaBuilder();
         CriteriaQuery<T> query = builder.createQuery(this.getDomainClass());
         Root<T> from = query.from(this.getDomainClass());
         query.select(from).where(
             builder.or(builder.greaterThanOrEqualTo(from.get("left"), i), builder.greaterThanOrEqualTo(from.get("right"), i)));
+        List<T> resultList = entityManager.createQuery(query).getResultList();
+        return resultList;
+    }
+
+    private List<T> findByLeftGreaterThanOrRightGreaterThan(int i) {
+        CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<T> query = builder.createQuery(this.getDomainClass());
+        Root<T> from = query.from(this.getDomainClass());
+        query.select(from).where(builder.or(builder.greaterThan(from.get("left"), i), builder.greaterThan(from.get("right"), i)));
+        List<T> resultList = entityManager.createQuery(query).getResultList();
+        return resultList;
+    }
+
+    private List<T> findByRightGreaterThan(int right) {
+        CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<T> query = builder.createQuery(this.getDomainClass());
+        Root<T> from = query.from(this.getDomainClass());
+        query.select(from).where(builder.greaterThan(from.get("right"), right));
+        List<T> resultList = entityManager.createQuery(query).getResultList();
+        return resultList;
+    }
+
+    private List<T> findByLeftGreaterEqualThanAndRightLowerEqualThan(int left, int right) {
+        CriteriaBuilder builder = entityManager.getCriteriaBuilder();
+        CriteriaQuery<T> query = builder.createQuery(this.getDomainClass());
+        Root<T> from = query.from(this.getDomainClass());
+        query.select(from).where(builder.and(builder.greaterThanOrEqualTo(from.get("left"), left), builder.lessThanOrEqualTo(from.get("right"), right)));
         List<T> resultList = entityManager.createQuery(query).getResultList();
         return resultList;
     }

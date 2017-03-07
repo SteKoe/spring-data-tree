@@ -123,8 +123,7 @@ public class TreeRepositoryTest {
     }
 
     @Test
-    @Ignore
-    public void removeAChild() {
+    public void removeChild() {
         TreeItem ti1 = TreeItem.builder().name("1").build();
         directoryTreeRepository.save(ti1);
 
