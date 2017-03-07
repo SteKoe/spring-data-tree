@@ -3,6 +3,8 @@ package de.codearcs.spring.data.jpa.repository;
 import java.io.Serializable;
 
 public interface ITreeItem<ID extends Serializable> {
+    ID getId();
+
     int getLeft();
     void setLeft(int left);
 

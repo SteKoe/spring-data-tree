@@ -15,6 +15,10 @@ import org.springframework.data.repository.core.support.RepositoryFactorySupport
 public class TreeRepositoryFactoryBean<R extends JpaRepository<T, I>, T, I extends Serializable>
     extends JpaRepositoryFactoryBean<R, T, I> {
 
+    public TreeRepositoryFactoryBean(Class<? extends R> repositoryInterface) {
+        super(repositoryInterface);
+    }
+
     @Override
     protected RepositoryFactorySupport createRepositoryFactory(EntityManager entityManager) {
         return new SimpleJpaExecutorFactory(entityManager);
