@@ -1,9 +1,11 @@
 package de.codearcs.spring.data.jpa.repository;
 
 import java.io.Serializable;
+import java.util.Set;
 
 public interface ITreeItem<ID extends Serializable> {
     ID getId();
+    void setId(ID id);
 
     int getLeft();
     void setLeft(int left);
@@ -11,6 +13,9 @@ public interface ITreeItem<ID extends Serializable> {
     int getRight();
     void setRight(int right);
 
-    ID getParentId();
-    void setParentId(ID id);
+    ITreeItem<ID> getParent();
+    void setParent(ITreeItem<ID> treeItem);
+
+    Set<? extends ITreeItem> getChildren();
+    void setChildren(Set<? extends ITreeItem> children);
 }

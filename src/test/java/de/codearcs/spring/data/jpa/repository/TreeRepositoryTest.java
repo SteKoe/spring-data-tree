@@ -1,32 +1,30 @@
 package de.codearcs.spring.data.jpa.repository;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-
+import de.codearcs.spring.data.jpa.repository.domain.TreeItem;
+import lombok.Setter;
 import org.hamcrest.Matcher;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import de.codearcs.spring.data.jpa.repository.domain.TreeItem;
-import lombok.Setter;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+import static org.hamcrest.core.Is.is;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = App.class)
 public class TreeRepositoryTest {
 
-    @Setter(onMethod = @__({ @Autowired }))
+    @Setter(onMethod = @__({@Autowired}))
     private DirectoryTreeRepository directoryTreeRepository;
 
     @After
     public void removeAllData() {
         directoryTreeRepository.deleteAll();
+        assertThat(directoryTreeRepository.count(), is(0L));
     }
 
     /**
@@ -38,6 +36,7 @@ public class TreeRepositoryTest {
         directoryTreeRepository.save(ti);
 
         assertTreeItem(ti, nullValue(), 1, 2);
+        assertThat(ti.getChildren(), nullValue());
     }
 
     /**
@@ -48,15 +47,17 @@ public class TreeRepositoryTest {
         TreeItem ti1 = TreeItem.builder().name("1").build();
         directoryTreeRepository.save(ti1);
 
-        TreeItem ti2 = TreeItem.builder().parentId(ti1.getId()).name("2").build();
+        TreeItem ti2 = TreeItem.builder().parent(ti1).name("2").build();
         directoryTreeRepository.save(ti2);
 
         ti1 = directoryTreeRepository.findOne(ti1.getId());
         ti2 = directoryTreeRepository.findOne(ti2.getId());
 
-        assertThat(ti2.getParentId(), is(ti1.getId()));
+        assertThat(ti2.getParent(), is(ti1));
         assertThat(ti2.getLeft(), is(2));
         assertThat(ti2.getRight(), is(3));
+        assertThat(ti1.getChildren(), hasSize(1));
+        assertThat(ti1.getChildren(), contains(ti2));
     }
 
     /**
@@ -88,7 +89,7 @@ public class TreeRepositoryTest {
         TreeItem ti2 = TreeItem.builder().name("1.2").build();
         ti2 = directoryTreeRepository.save(ti2);
 
-        TreeItem ti3 = TreeItem.builder().parentId(ti2.getId()).name("1.2.1").build();
+        TreeItem ti3 = TreeItem.builder().parent(ti2).name("1.2.1").build();
         ti3 = directoryTreeRepository.save(ti3);
 
         ti1 = directoryTreeRepository.findOne(ti1.getId());
@@ -108,7 +109,7 @@ public class TreeRepositoryTest {
         TreeItem ti2 = TreeItem.builder().name("2").build();
         directoryTreeRepository.save(ti2);
 
-        TreeItem ti3 = TreeItem.builder().parentId(ti1.getId()).name("1.1").build();
+        TreeItem ti3 = TreeItem.builder().parent(ti1).name("1.1").build();
         directoryTreeRepository.save(ti3);
 
         ti1 = directoryTreeRepository.findOne(ti1.getId());
@@ -117,7 +118,7 @@ public class TreeRepositoryTest {
 
         assertTreeItem(ti1, nullValue(), 1, 4);
         assertTreeItem(ti2, nullValue(), 5, 6);
-        assertThat(ti3.getParentId(), is(ti1.getId()));
+        assertThat(ti3.getParent(), is(ti1));
         assertThat(ti3.getLeft(), is(2));
         assertThat(ti3.getRight(), is(3));
     }
@@ -130,7 +131,7 @@ public class TreeRepositoryTest {
         TreeItem ti2 = TreeItem.builder().name("2").build();
         directoryTreeRepository.save(ti2);
 
-        TreeItem ti3 = TreeItem.builder().parentId(ti2.getId()).name("2.1").build();
+        TreeItem ti3 = TreeItem.builder().parent(ti2).name("2.1").build();
         directoryTreeRepository.save(ti3);
 
         directoryTreeRepository.delete(ti3.getId());
@@ -151,36 +152,47 @@ public class TreeRepositoryTest {
         child1 = directoryTreeRepository.findOne(child1.getId());
         assertTreeItem(child1, nullValue(), 1, 2);
 
-        TreeItem child11 = TreeItem.builder().name("1.1").parentId(child1.getId()).build();
+        TreeItem child11 = TreeItem.builder().name("1.1").parent(child1).build();
         directoryTreeRepository.save(child11);
         child1 = directoryTreeRepository.findOne(child1.getId());
         child11 = directoryTreeRepository.findOne(child11.getId());
         assertTreeItem(child1, nullValue(), 1, 4);
-        assertTreeItem(child11, is(child1.getId()), 2, 3);
+        assertTreeItem(child11, is(child1), 2, 3);
 
-        TreeItem child12 = TreeItem.builder().name("1.2").parentId(child11.getId()).build();
+        TreeItem child12 = TreeItem.builder().name("1.2").parent(child11).build();
         directoryTreeRepository.save(child12);
         child1 = directoryTreeRepository.findOne(child1.getId());
         child11 = directoryTreeRepository.findOne(child11.getId());
         child12 = directoryTreeRepository.findOne(child12.getId());
         assertTreeItem(child1, nullValue(), 1, 6);
-        assertTreeItem(child11, is(child1.getId()), 2, 5);
-        assertTreeItem(child12, is(child11.getId()), 3, 4);
+        assertTreeItem(child11, is(child1), 2, 5);
+        assertTreeItem(child12, is(child11), 3, 4);
 
-        TreeItem child111 = TreeItem.builder().name("1.1.1").parentId(child11.getId()).build();
+        TreeItem child111 = TreeItem.builder().name("1.1.1").parent(child11).build();
         directoryTreeRepository.save(child111);
         child1 = directoryTreeRepository.findOne(child1.getId());
         child11 = directoryTreeRepository.findOne(child11.getId());
         child111 = directoryTreeRepository.findOne(child111.getId());
         child12 = directoryTreeRepository.findOne(child12.getId());
         assertTreeItem(child1, nullValue(), 1, 8);
-        assertTreeItem(child11, is(child1.getId()), 2, 7);
-        assertTreeItem(child12, is(child11.getId()), 3, 4);
-        assertTreeItem(child111, is(child11.getId()), 5, 6);
+        assertTreeItem(child11, is(child1), 2, 7);
+        assertTreeItem(child12, is(child11), 3, 4);
+        assertTreeItem(child111, is(child11), 5, 6);
     }
 
-    private void assertTreeItem(TreeItem ti, Matcher<Object> parentValue, int left, int right) {
-        assertThat(ti.getParentId(), parentValue);
+    @Test
+    public void countAllChildren() {
+        TreeItem child1 = TreeItem.builder().name("1").build();
+        child1 = directoryTreeRepository.save(child1);
+
+        TreeItem child2 = TreeItem.builder().parent(child1).name("2").build();
+        directoryTreeRepository.save(child2);
+
+        assertThat(directoryTreeRepository.count(), is(2L));
+    }
+
+    private void assertTreeItem(TreeItem ti, Matcher<Object> parentItem, int left, int right) {
+        assertThat(ti.getParent(), parentItem);
         assertThat(ti.getLeft(), is(left));
         assertThat(ti.getRight(), is(right));
     }

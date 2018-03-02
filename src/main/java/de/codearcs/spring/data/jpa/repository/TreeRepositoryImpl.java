@@ -1,24 +1,23 @@
 package de.codearcs.spring.data.jpa.repository;
 
-import java.io.Serializable;
-import java.util.List;
+import org.springframework.data.jpa.repository.support.JpaEntityInformation;
+import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
+import org.springframework.data.repository.NoRepositoryBean;
 
 import javax.persistence.EntityManager;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 import javax.transaction.Transactional;
-
-import org.springframework.data.jpa.repository.support.JpaEntityInformation;
-import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
-import org.springframework.data.repository.NoRepositoryBean;
+import java.io.Serializable;
+import java.util.List;
 
 @NoRepositoryBean
 public class TreeRepositoryImpl<T extends ITreeItem<ID>, ID extends Serializable> extends SimpleJpaRepository<T, ID>
-    implements TreeRepository<T, ID> {
+        implements TreeRepository<T, ID> {
 
     private enum Operator {
-            PLUS, MINUS
+        PLUS, MINUS
     }
 
     EntityManager entityManager;
@@ -36,15 +35,14 @@ public class TreeRepositoryImpl<T extends ITreeItem<ID>, ID extends Serializable
     @Override
     @Transactional
     public <S extends T> S save(S entity) {
-        ID parentId = (ID) entity.getParentId();
+        ITreeItem<ID> parent = entity.getParent();
         boolean isNew = isNew(entity);
 
-        if (isNew && parentId == null) {
+        if (isNew && parent == null) {
             int maxRight = this.getMaxRight();
             entity.setLeft(maxRight + 1);
             entity.setRight(maxRight + 2);
         } else if (isNew) {
-            T parent = (T) super.findOne(parentId);
             int right = parent.getRight();
             entity.setLeft(right);
             entity.setRight(right + 1);
@@ -108,12 +106,12 @@ public class TreeRepositoryImpl<T extends ITreeItem<ID>, ID extends Serializable
         List<T> nodes = this.findByRightGreaterThan(right);
         nodes.forEach(node -> {
             int lft = node.getLeft();
-            if(lft > right) {
+            if (lft > right) {
                 node.setLeft(lft - delta);
             }
 
             int rght = node.getRight();
-            if(rght > right) {
+            if (rght > right) {
                 node.setRight(rght - delta);
             }
             super.save(node);
@@ -141,7 +139,7 @@ public class TreeRepositoryImpl<T extends ITreeItem<ID>, ID extends Serializable
         CriteriaQuery<T> query = builder.createQuery(this.getDomainClass());
         Root<T> from = query.from(this.getDomainClass());
         query.select(from).where(
-            builder.or(builder.greaterThanOrEqualTo(from.get("left"), i), builder.greaterThanOrEqualTo(from.get("right"), i)));
+                builder.or(builder.greaterThanOrEqualTo(from.get("left"), i), builder.greaterThanOrEqualTo(from.get("right"), i)));
         List<T> resultList = entityManager.createQuery(query).getResultList();
         return resultList;
     }

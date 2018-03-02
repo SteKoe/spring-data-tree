@@ -1,37 +1,43 @@
 package de.codearcs.spring.data.jpa.repository.domain;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-
 import de.codearcs.spring.data.jpa.repository.ITreeItem;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
+
+import javax.persistence.*;
+import java.util.Set;
 
 @Entity
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(of = {"id"})
 @Builder
 public class TreeItem implements ITreeItem<Long> {
 
     @Id
-    @Setter
     @GeneratedValue
     private Long id;
 
-    @Setter
-    private Long parentId;
+    @ManyToOne(targetEntity = TreeItem.class)
+    private TreeItem parent;
 
-    @Setter
     private String name;
 
-    @Setter
     private int left;
 
-    @Setter
     private int right;
+
+    @OneToMany(mappedBy = "parent", fetch = FetchType.EAGER)
+    private Set<TreeItem> children;
+
+    @Override
+    public void setParent(ITreeItem<Long> treeItem) {
+        this.parent = parent;
+    }
+
+    @Override
+    public void setChildren(Set<? extends ITreeItem> children) {
+        this.children = (Set<TreeItem>) children;
+    }
 }
